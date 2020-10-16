@@ -41,7 +41,7 @@ function TribeLibCam() {
     SuperSlowPC: {
       architecture: "MobileNetV1",
       outputStride: 16,
-      multiplier: 0.50,
+      multiplier: 0.5,
       quantBytes: 2,
     },
   };
@@ -141,7 +141,10 @@ function TribeLibCam() {
   this.makePredictionPerson = async () => {
     let prediction;
     let net = await this.loadModel();
-    prediction = await net.segmentPerson(video, this.segmentationConfigs.MediumSeg);
+    prediction = await net.segmentPerson(
+      video,
+      this.segmentationConfigs.MediumSeg
+    );
     return prediction;
   };
 
@@ -166,17 +169,47 @@ function TribeLibCam() {
     context.putImageData(imageData, 0, 0);
   };
 
+  this.blurBackground = async (
+    canvas,
+    img_video,
+    backgroundBlurAmount = 10,
+    edgeBlurAmount = 5,
+    flipHorizontal
+  ) => {
+    let prediction = await this.makePredictionPerson();
+    await bodyPix.drawBokehEffect(
+      canvas,
+      img_video,
+      prediction,
+      backgroundBlurAmount,
+      edgeBlurAmount,
+      flipHorizontal
+    );
+  };
+
+  this.virtualBackground = async () => {
+    if (canvas.style.backgroundImage == '') {
+      canvas.style.backgroundImage =
+        "url('https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-1.2.1&w=1000&q=80')";
+      await this.removeBackground();
+    } 
+    else {
+      await this.removeBackground();
+    }
+  };
   this.draw = async () => {
-    await this.removeBackground();
+    // await this.removeBackground();
+    
+    await this.virtualBackground();
+    await this.blurBackground(canvas, video, 18, 15, false);
     requestAnimationFrame(this.draw);
-  }
+  };
 
   this.execute = async () => {
     await this.GetDevices();
     await this.loadVideo();
-    await this.makePredictionPerson();
-    requestAnimationFrame(this.draw);
-  }
+    requestAnimationFrame(await this.draw);
+  };
 }
 
 const cam = new TribeLibCam();
