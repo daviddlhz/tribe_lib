@@ -1,8 +1,21 @@
-body{
+#main{
 
   width: 100%;
   display: flex;
   justify-content: center;
+}
+
+#buttons{
+
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 5%;
+  
+}
+
+#buttons button{
+  margin-right: 2%;
 }
 
 canvas {

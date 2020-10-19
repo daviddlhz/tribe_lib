@@ -16,6 +16,9 @@ function TribeLibCam() {
    */
   const video = document.getElementById("video");
   const canvas = document.getElementById("output");
+  const btnBlur = document.querySelector("#btnBlur");
+  const btnVirtualBackground = document.querySelector("#btnVirtualBackground");
+  let change = 0;
 
   this.modelConfigs = {
     GoodPC: {
@@ -66,10 +69,21 @@ function TribeLibCam() {
     },
   };
 
+  this.PersonalModelConfig = (architec, multipl, quantByt) => {
+    let personalModelConfig = {
+      architecture: architec,
+      outputStride: 16,
+      multiplier: multipl,
+      quantBytes: quantByt,
+    };
+
+    return personalModelConfig;
+  };
+
   this.GetDevices = async () => {
     /**
      * @desc Obtain permissions of camera and microfone
-     * @return Array - Contains device information
+     * @return Array - Contains video device information
      */
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
@@ -91,6 +105,11 @@ function TribeLibCam() {
   };
 
   this.stopVideo = () => {
+    /**
+     * @desc Stop every track in the video
+     * @return Nothing
+     */
+
     if (video && video.srcObject) {
       video.srcObject.getTracks().forEach((track) => {
         track.stop();
@@ -100,6 +119,11 @@ function TribeLibCam() {
   };
 
   this.setVideo = async () => {
+    /**
+     * @desc Config the video device
+     * @return a promise that set config in the video and canva tags
+     */
+
     this.stopVideo(video);
     const config = {
       audio: false,
@@ -112,6 +136,11 @@ function TribeLibCam() {
   };
 
   this.PromiseCreator = () => {
+    /**
+     * @desc Set the video config and set width and height in the canvas and video tags
+     * @return the promise resolve
+     */
+
     return new Promise((resolve, reject) => {
       video.onloadedmetadata = () => {
         video.width = video.videoWidth;
@@ -124,6 +153,11 @@ function TribeLibCam() {
   };
 
   this.loadVideo = async () => {
+    /**
+     * @desc Play what the camera shows on video
+     * @return Nothing
+     */
+
     let state_video;
     try {
       state_video = await this.setVideo();
@@ -134,11 +168,21 @@ function TribeLibCam() {
   };
 
   this.loadModel = () => {
+    /**
+     * @desc Load the bodipix model to use
+     * @return The loaded model
+     */
+
     const net = bodyPix.load(this.modelConfigs.SuperSlowPC);
     return net;
   };
 
   this.makePredictionPerson = async () => {
+    /**
+     * @desc Make the prediction using the previously loaded model
+     * @return The prediction or segmentation of the person
+     */
+
     let prediction;
     let net = await this.loadModel();
     prediction = await net.segmentPerson(
@@ -146,6 +190,24 @@ function TribeLibCam() {
       this.segmentationConfigs.MediumSeg
     );
     return prediction;
+  };
+
+  //Effects in the canvas
+  this.clearCanvas = async () => {
+    const context = canvas.getContext("2d");
+    await context.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  this.buttonActivate = async (effect) => {
+    if (!effect) {
+      console.log("No empty values");
+    } else {
+      if (effect === 1) {
+        await this.virtualBackground();
+      } else if (effect === 2) {
+        await this.blurBackground(canvas, video, 18, 15, false);
+      }
+    }
   };
 
   this.clearCanvas = async () => {
@@ -188,20 +250,20 @@ function TribeLibCam() {
   };
 
   this.virtualBackground = async () => {
-    if (canvas.style.backgroundImage == '') {
+    if (canvas.style.backgroundImage == "") {
+      await this.removeBackground();
       canvas.style.backgroundImage =
         "url('https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-1.2.1&w=1000&q=80')";
-      await this.removeBackground();
-    } 
-    else {
+    } else {
       await this.removeBackground();
     }
   };
+
   this.draw = async () => {
-    // await this.removeBackground();
-    
-    await this.virtualBackground();
-    await this.blurBackground(canvas, video, 18, 15, false);
+    //await this.removeBackground();
+    //await this.virtualBackground();
+    //await this.blurBackground(canvas, video, 18, 15, false);
+    this.buttonActivate(change);
     requestAnimationFrame(this.draw);
   };
 
@@ -210,6 +272,20 @@ function TribeLibCam() {
     await this.loadVideo();
     requestAnimationFrame(await this.draw);
   };
+
+  //Events (Click)
+  btnBlur.addEventListener("click", async (e) => {
+    console.log("Blur Activate");
+    canvas.style.backgroundImage = "";
+    await this.clearCanvas();
+    change = 2;
+  });
+
+  btnVirtualBackground.addEventListener("click", async (e) => {
+    console.log("Virtual Activate");
+    await this.clearCanvas();
+    change = 1;
+  });
 }
 
 const cam = new TribeLibCam();
